@@ -1,30 +1,65 @@
-const userModel = require('../models/userModel');
+const { v4: uuidv4 } = require('uuid');
+let users = require('../models/user');
 
-exports.create = (req, res) => {
+// Criar usuário
+const createUser = (req, res) => {
   const { name, email } = req.body;
-  const user = userModel.createUser({ name, email });
-  res.status(201).json(user);
+
+  // Verificar se o e-mail já existe
+  const userExists = users.find(user => user.email === email);
+  if (userExists) {
+    return res.status(400).json({ message: "E-mail já cadastrado!" });
+  }
+
+  const newUser = {
+    id: uuidv4(),
+    name,
+    email,
+  };
+
+  users.push(newUser);
+
+  return res.status(201).json(newUser);
 };
 
-exports.index = (req, res) => {
-  const users = userModel.getAllUsers();
-  res.json(users);
+// Listar todos os usuários
+const index = (req, res) => {
+  return res.status(200).json(users);
 };
 
-exports.show = (req, res) => {
-  const user = userModel.getUserById(req.params.id);
-  if (!user) return res.status(404).json({ message: 'User not found' });
-  res.json(user);
+// Mostrar um usuário específico
+const show = (req, res) => {
+  const user = users.find(u => u.id === req.params.id);
+  if (!user) {
+    return res.status(404).json({ message: "Usuário não encontrado!" });
+  }
+  return res.status(200).json(user);
 };
 
-exports.update = (req, res) => {
-  const user = userModel.updateUser(req.params.id, req.body);
-  if (!user) return res.status(404).json({ message: 'User not found' });
-  res.json(user);
+// Atualizar um usuário
+const update = (req, res) => {
+  const user = users.find(u => u.id === req.params.id);
+  if (!user) {
+    return res.status(404).json({ message: "Usuário não encontrado!" });
+  }
+
+  const { name, email } = req.body;
+  user.name = name || user.name;
+  user.email = email || user.email;
+
+  return res.status(200).json(user);
 };
 
-exports.delete = (req, res) => {
-  const success = userModel.deleteUser(req.params.id);
-  if (!success) return res.status(404).json({ message: 'User not found' });
-  res.status(204).send();
+// Deletar um usuário
+const deleteUser = (req, res) => {
+  const userIndex = users.findIndex(u => u.id === req.params.id);
+  if (userIndex === -1) {
+    return res.status(404).json({ message: "Usuário não encontrado!" });
+  }
+
+  users.splice(userIndex, 1);
+
+  return res.status(204).send();
 };
+
+module.exports = { createUser, index, show, update, deleteUser };
